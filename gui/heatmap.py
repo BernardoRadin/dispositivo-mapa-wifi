@@ -8,14 +8,19 @@ class HeatmapGenerator:
     def __init__(self, parent_window):
         self.parent = parent_window
         
-        # Posições relativas dos pontos (em metros)
-        self.point_positions = {
-            "Ponto 1 (Centro)": (0, 0),
-            "Ponto 2 (Superior Direito)": (2, 2),
-            "Ponto 3 (Superior Esquerdo)": (-2, 2),
-            "Ponto 4 (Inferior Direito)": (2, -2),
-            "Ponto 5 (Inferior Esquerdo)": (-2, -2)
-        }
+        # Posições relativas dos pontos (em metros) - 4x4 grid
+        self.point_positions = {}
+        grid_size = 4
+        spacing = 1.0  # 1 metro entre pontos
+        
+        for row in range(grid_size):
+            for col in range(grid_size):
+                point_num = row * grid_size + col + 1
+                point_name = f"Ponto {point_num}"
+                # Centralizar o grid em torno de (0,0)
+                x_pos = (col - (grid_size-1)/2) * spacing
+                y_pos = ((grid_size-1)/2 - row) * spacing  # Inverter Y para que row 0 seja no topo
+                self.point_positions[point_name] = (x_pos, y_pos)
 
         # Posições base dos locais
         self.location_positions = {
@@ -32,10 +37,10 @@ class HeatmapGenerator:
             return
             
         # Verificar se há dados suficientes
-        complete_locations = [local for local, points in measurements.items() if len(points) == 5]
+        complete_locations = [local for local, points in measurements.items() if len(points) == 16]
         
         if len(complete_locations) < 1:
-            messagebox.showwarning("Aviso", "É necessário pelo menos 1 local com todos os 5 pontos medidos")
+            messagebox.showwarning("Aviso", "É necessário pelo menos 1 local com todos os 16 pontos medidos")
             return
 
         # Criar janela do mapa
@@ -116,7 +121,7 @@ class HeatmapGenerator:
         cbar = plt.colorbar(contour, ax=ax, shrink=0.8)
         cbar.set_label('RSSI (dBm)', fontsize=12)
 
-        return fig
+        return fig, ax
 
     def _interpolate_data(self, xi, yi, Xi, Yi, x_coords, y_coords, dbm_values):
         Zi = np.zeros_like(Xi)

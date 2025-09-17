@@ -11,8 +11,12 @@ from gui.heatmap import HeatmapGenerator
 class WifiMapApp:  
     def __init__(self, root):
         self.root = root
-        self.root.title("WiFi Scanner - 5 Pontos por Local")
-        self.root.geometry("800x600")
+        self.root.title("WiFi Scanner - Mapa de Calor Profissional")
+        self.root.geometry("1200x900")
+        self.root.configure(bg='#f0f0f0')
+        
+        # Configurar estilos modernos
+        self.setup_styles()
         
         # Componentes principais
         self.scanner = WifiScanner()
@@ -27,18 +31,106 @@ class WifiMapApp:
         self.point_labels = {}
         self.create_widgets()
 
+    def setup_styles(self):
+        """Configura estilos modernos para a interface"""
+        style = ttk.Style()
+        
+        # Configurar tema
+        try:
+            style.theme_use('clam')  # Tema mais moderno
+        except:
+            pass
+        
+        # Cores do tema
+        self.colors = {
+            'primary': '#007acc',
+            'secondary': '#f8f9fa',
+            'success': '#28a745',
+            'warning': '#ffc107',
+            'danger': '#dc3545',
+            'info': '#17a2b8',
+            'light': '#f8f9fa',
+            'dark': '#343a40',
+            'white': '#ffffff',
+            'gray': '#6c757d'
+        }
+        
+        # Estilo para botões
+        style.configure('TButton', 
+                       font=('Segoe UI', 10, 'bold'),
+                       padding=8,
+                       relief='flat',
+                       background=self.colors['primary'])
+        
+        style.configure('Primary.TButton',
+                       background=self.colors['primary'],
+                       foreground=self.colors['white'])
+        
+        style.configure('Success.TButton',
+                       background=self.colors['success'],
+                       foreground=self.colors['white'])
+        
+        style.configure('Danger.TButton',
+                       background=self.colors['danger'],
+                       foreground=self.colors['white'])
+        
+        # Estilo para labels
+        style.configure('TLabel', 
+                       font=('Segoe UI', 10),
+                       background=self.colors['light'])
+        
+        style.configure('Header.TLabel',
+                       font=('Segoe UI', 14, 'bold'),
+                       foreground=self.colors['dark'])
+        
+        # Estilo para frames
+        style.configure('Card.TLabelframe',
+                       background=self.colors['white'],
+                       relief='solid',
+                       borderwidth=1)
+        
+        style.configure('Card.TLabelframe.Label',
+                       font=('Segoe UI', 11, 'bold'),
+                       foreground=self.colors['primary'],
+                       background=self.colors['white'])
+        
+        # Estilo para combobox
+        style.configure('TCombobox',
+                       font=('Segoe UI', 10),
+                       padding=5)
+        
+        # Estilo para treeview
+        style.configure('Treeview',
+                       font=('Segoe UI', 9),
+                       rowheight=25,
+                       background=self.colors['white'])
+        
+        style.configure('Treeview.Heading',
+                       font=('Segoe UI', 10, 'bold'),
+                       background=self.colors['primary'],
+                       foreground=self.colors['white'])
+
     def create_widgets(self):
-        # Container principal para organizar os frames
-        main_container = ttk.Frame(self.root)
-        main_container.pack(fill='both', expand=True, padx=10, pady=5)
+        # Container principal com padding e fundo
+        main_container = ttk.Frame(self.root, style='Card.TLabelframe')
+        main_container.pack(fill='both', expand=True, padx=15, pady=10)
+        
+        # Título principal
+        title_label = ttk.Label(main_container, 
+                               text="📡 WiFi Scanner - Mapa de Calor",
+                               style='Header.TLabel')
+        title_label.pack(pady=(0, 15))
         
         # Frame superior para controles
         self._create_top_frame(main_container)
         
-        # Status
-        self.status_label = ttk.Label(main_container, text="Selecione uma rede Wi-Fi para começar", 
-                                     font=('Arial', 10))
-        self.status_label.pack(pady=5)
+        # Status com melhor visual
+        self.status_label = ttk.Label(main_container, 
+                                     text="Selecione uma rede Wi-Fi para começar", 
+                                     font=('Segoe UI', 11),
+                                     foreground=self.colors['info'],
+                                     background=self.colors['light'])
+        self.status_label.pack(pady=10, fill='x', padx=10)
 
         # Frame de progresso do local atual
         self._create_progress_frame(main_container)
@@ -51,82 +143,87 @@ class WifiMapApp:
         self.disable_controls()
 
     def _create_top_frame(self, parent):
-        top_frame = ttk.Frame(parent)
-        top_frame.pack(fill='x', pady=(0, 5))
+        top_frame = ttk.Frame(parent, style='Card.TLabelframe')
+        top_frame.pack(fill='x', pady=(0, 10))
         
         # Frame para controles de local e ponto (lado esquerdo)
-        controls_frame = ttk.LabelFrame(top_frame, text="Local e Ponto", padding=10)
-        controls_frame.pack(side='left', fill='x', expand=True, anchor='n')
+        controls_frame = ttk.LabelFrame(top_frame, text="📍 Local e Ponto", 
+                                       style='Card.TLabelframe', padding=15)
+        controls_frame.pack(side='left', fill='x', expand=True, padx=(0, 10))
         
         self._create_controls(controls_frame)
         
         # Frame para seleção de WiFi (lado direito)
-        wifi_frame = ttk.LabelFrame(top_frame, text="Seleção de Rede Wi-Fi", padding=10)
-        wifi_frame.pack(side='right', padx=(10, 0), anchor='n')
+        wifi_frame = ttk.LabelFrame(top_frame, text="📶 Seleção de Rede Wi-Fi", 
+                                   style='Card.TLabelframe', padding=15)
+        wifi_frame.pack(side='right', fill='x', expand=True)
         
         self._create_wifi_controls(wifi_frame)
 
     def _create_controls(self, parent):
-        # Primeira linha - Local e Ponto
-        ttk.Label(parent, text="Local:").grid(row=0, column=0, sticky='w', padx=(0, 5))
-        self.combo_local = ttk.Combobox(parent, state='readonly', width=15,
-                                        values=["Banheiro", "Sala", "Corredor", "Quarto", "Cozinha"])
+        # Primeira linha - Local
+        ttk.Label(parent, text="🏠 Local:", font=('Segoe UI', 10, 'bold')).grid(row=0, column=0, sticky='w', padx=(0, 8), pady=5)
+        self.combo_local = ttk.Combobox(parent, state='readonly', width=18,
+                                        values=["Banheiro", "Sala", "Corredor", "Quarto", "Cozinha"],
+                                        font=('Segoe UI', 10))
         self.combo_local.bind('<<ComboboxSelected>>', self.on_local_changed)
-        self.combo_local.grid(row=0, column=1, sticky='w', padx=(0, 20))
+        self.combo_local.grid(row=0, column=1, sticky='w', padx=(0, 20), pady=5)
         
-        ttk.Label(parent, text="Ponto:").grid(row=0, column=2, sticky='w', padx=(0, 5))
-        self.combo_ponto = ttk.Combobox(parent, state='readonly', width=20,
-                                        values=["Ponto 1 (Centro)", "Ponto 2 (Superior Direito)", 
-                                                "Ponto 3 (Superior Esquerdo)", "Ponto 4 (Inferior Direito)", 
-                                                "Ponto 5 (Inferior Esquerdo)"])
-        self.combo_ponto.grid(row=0, column=3, sticky='w')
+        # Instruções para o usuário
+        ttk.Label(parent, text="📍 Clique nos pontos do grid abaixo para medir automaticamente", 
+                 font=('Segoe UI', 9), foreground=self.colors['info']).grid(row=0, column=2, columnspan=2, sticky='w', pady=5)
         
         # Segunda linha - Botões de ação
         self._create_buttons(parent)
 
     def _create_buttons(self, parent):
         button_frame = ttk.Frame(parent)
-        button_frame.grid(row=1, column=0, columnspan=4, pady=(10, 0), sticky='w')
+        button_frame.grid(row=1, column=0, columnspan=4, pady=(15, 0), sticky='w')
         
-        self.btn_measure = ttk.Button(button_frame, text="Medir Ponto", command=self.measure_point)
-        self.btn_measure.pack(side='left', padx=(0, 5))
+        # Botões - removido o botão de medição manual
+        self.btn_manual = ttk.Button(button_frame, text="✏️ Inserir Manual", 
+                                    command=self.insert_manual, style='Success.TButton')
+        self.btn_manual.pack(side='left', padx=(0, 8))
         
-        self.btn_manual = ttk.Button(button_frame, text="Inserir Manual", command=self.insert_manual)
-        self.btn_manual.pack(side='left', padx=(0, 5))
+        self.btn_clear_all = ttk.Button(button_frame, text="🗑️ Limpar Tudo", 
+                                       command=self.clear_all, style='Danger.TButton')
+        self.btn_clear_all.pack(side='left', padx=(0, 8))
         
-        self.btn_clear_all = ttk.Button(button_frame, text="Limpar Tudo", command=self.clear_all)
-        self.btn_clear_all.pack(side='left', padx=(0, 5))
-        
-        self.btn_heatmap = ttk.Button(button_frame, text="Gerar Mapa de Calor", command=self.show_heatmap)
+        self.btn_heatmap = ttk.Button(button_frame, text="🗺️ Gerar Mapa", 
+                                     command=self.show_heatmap, style='Primary.TButton')
         self.btn_heatmap.pack(side='left')
 
     def _create_wifi_controls(self, parent):
-        ttk.Label(parent, text="Rede:").grid(row=0, column=0, sticky='w', padx=(0, 5))
-        self.combo_wifi = ttk.Combobox(parent, state='readonly', width=20)
-        self.combo_wifi.grid(row=0, column=1, sticky='w', padx=(0, 10))
+        ttk.Label(parent, text="📶 Rede Wi-Fi:", font=('Segoe UI', 10, 'bold')).grid(row=0, column=0, sticky='w', padx=(0, 8), pady=5)
+        self.combo_wifi = ttk.Combobox(parent, state='readonly', width=20, font=('Segoe UI', 10))
+        self.combo_wifi.grid(row=0, column=1, sticky='w', padx=(0, 10), pady=5)
         self.combo_wifi.bind("<<ComboboxSelected>>", self.on_wifi_changed)
         
-        btn_atualizar = ttk.Button(parent, text="🔄 Atualizar", command=self.atualizar_redes)
-        btn_atualizar.grid(row=0, column=2)
+        btn_atualizar = ttk.Button(parent, text="🔄 Atualizar", 
+                                  command=self.atualizar_redes, style='Primary.TButton')
+        btn_atualizar.grid(row=0, column=2, pady=5)
 
     def _create_progress_frame(self, parent):
-        self.progress_frame = ttk.LabelFrame(parent, text="Progresso do Local Atual", padding=10)
-        self.progress_frame.pack(fill='x', pady=5)
+        self.progress_frame = ttk.LabelFrame(parent, text="📊 Progresso do Local Atual", 
+                                           style='Card.TLabelframe', padding=15)
+        self.progress_frame.pack(fill='x', pady=10)
         self.create_point_grid()
 
     def _create_list_frame(self, parent):
-        list_frame = ttk.LabelFrame(parent, text="Todos os Locais Medidos", padding=10)
-        list_frame.pack(fill='both', expand=True, pady=5)
+        list_frame = ttk.LabelFrame(parent, text="📋 Todos os Locais Medidos", 
+                                   style='Card.TLabelframe', padding=15)
+        list_frame.pack(fill='both', expand=True, pady=10)
 
         # Treeview para mostrar todos os locais
-        self.tree = ttk.Treeview(list_frame, columns=("local", "pontos", "media"), show='headings', height=8)
-        self.tree.heading("local", text="Local")
-        self.tree.heading("pontos", text="Pontos Medidos")
-        self.tree.heading("media", text="Média (dBm)")
+        self.tree = ttk.Treeview(list_frame, columns=("local", "pontos", "media"), 
+                                show='headings', height=10, style='Treeview')
+        self.tree.heading("local", text="🏠 Local")
+        self.tree.heading("pontos", text="📍 Pontos Medidos")
+        self.tree.heading("media", text="📊 Média (dBm)")
         
-        self.tree.column("local", width=120, anchor='w')
-        self.tree.column("pontos", width=120, anchor='center')
-        self.tree.column("media", width=120, anchor='center')
+        self.tree.column("local", width=140, anchor='w')
+        self.tree.column("pontos", width=140, anchor='center')
+        self.tree.column("media", width=140, anchor='center')
 
         # Scrollbar
         scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=self.tree.yview)
@@ -137,16 +234,12 @@ class WifiMapApp:
 
     def disable_controls(self):
         self.combo_local.config(state='disabled')
-        self.combo_ponto.config(state='disabled')
-        self.btn_measure.config(state='disabled')
         self.btn_manual.config(state='disabled')
         self.btn_clear_all.config(state='disabled')
         self.btn_heatmap.config(state='disabled')
         
     def enable_controls(self):
         self.combo_local.config(state='readonly')
-        self.combo_ponto.config(state='readonly')
-        self.btn_measure.config(state='normal')
         self.btn_manual.config(state='normal')
         self.btn_clear_all.config(state='normal')
         self.btn_heatmap.config(state='normal')
@@ -164,101 +257,108 @@ class WifiMapApp:
         if selected == "Selecione uma rede...":
             self.ssid_selecionado = None
             self.disable_controls()
-            self.status_label.config(text="Selecione uma rede Wi-Fi para começar")
+            self.status_label.config(text="💡 Selecione uma rede Wi-Fi para começar as medições", 
+                                   foreground=self.colors['info'])
         else:
             # Se já havia uma rede selecionada e há medições, limpar tudo
-            if self.ssid_selecionado is not None and self.measurements:
-                self.measurements.clear()
-                self.update_point_grid()
-                self.update_tree()
+            self.measurements.clear()
+            self.update_point_grid_buttons()
+            self.update_tree()
             
             self.ssid_selecionado = selected
             self.enable_controls()
-            self.status_label.config(text=f"Rede selecionada: {self.ssid_selecionado} - Selecione um local e ponto")
+            self.status_label.config(text=f"✅ Rede selecionada: {self.ssid_selecionado} - Selecione um local e ponto para começar", 
+                                   foreground=self.colors['success'])
             print(f"Rede selecionada: {self.ssid_selecionado}")
 
     def create_point_grid(self):
         # Limpar labels anteriores
-        for label in self.point_labels.values():
-            label.destroy()
+        for widget in self.point_labels.values():
+            widget.destroy()
         self.point_labels.clear()
 
-        # Layout em cruz: 
-        #   NO    NE
-        #     Centro
-        #   SO    SE
-        positions = [
-            ("Ponto 1 (Centro)", 1, 1),
-            ("Ponto 2 (Superior Direito)", 0, 2),
-            ("Ponto 3 (Superior Esquerdo)", 0, 0),
-            ("Ponto 4 (Inferior Direito)", 2, 2),
-            ("Ponto 5 (Inferior Esquerdo)", 2, 0)
-        ]
+        # Criar grid 4x4 de pontos clicáveis
+        grid_size = 4
+        
+        for row in range(grid_size):
+            for col in range(grid_size):
+                point_num = row * grid_size + col + 1
+                point_name = f"Ponto {point_num}"
+                
+                # Criar botão para cada ponto
+                point_button = ttk.Button(self.progress_frame, 
+                                        text=f"📍 {point_num}\nNão medido",
+                                        command=lambda p=point_name: self.measure_point_auto(p),
+                                        style='TButton')
+                point_button.grid(row=row, column=col, padx=3, pady=3, sticky='nsew')
+                
+                self.point_labels[point_name] = point_button
 
-        for point_name, row, col in positions:
-            label = ttk.Label(self.progress_frame, text=f"{point_name}\nNão medido", 
-                             relief='sunken', width=15, anchor='center',
-                             background='lightgray')
-            label.grid(row=row, column=col, padx=5, pady=5, sticky='nsew')
-            self.point_labels[point_name] = label
-
-        # Configurar grid para expandir
-        for i in range(3):
+        # Configurar grid para expandir igualmente
+        for i in range(grid_size):
             self.progress_frame.grid_columnconfigure(i, weight=1)
             self.progress_frame.grid_rowconfigure(i, weight=1)
 
     def on_local_changed(self, event=None):
         self.current_local = self.combo_local.get()
-        self.update_point_grid()
+        self.update_point_grid_buttons()
         if self.ssid_selecionado:
-            self.status_label.config(text=f"Rede: {self.ssid_selecionado} - Local: {self.current_local}")
+            self.status_label.config(text=f"🏠 Local: {self.current_local} - Clique nos pontos do grid para medir automaticamente", 
+                                   foreground=self.colors['primary'])
 
-    def update_point_grid(self):
-        if not self.current_local:
-            return
-
-        local_data = self.measurements.get(self.current_local, {})
+    def update_point_button(self, button, point_name, measurement):
+        """Atualiza a aparência de um botão de ponto baseado na medição"""
+        dbm = measurement['dbm']
         
-        for point_name, label in self.point_labels.items():
-            if point_name in local_data:
-                measurement = local_data[point_name]
-                dbm = measurement['dbm']
-                if dbm != "N/A":
-                    percent = signal_dbm_to_percent(dbm)
-                    color = dbm_to_color(dbm)
-                    bg_color = {'red': '#ffcccc', 'orange': '#ffedcc', 'green': '#ccffcc'}[color]
-                    label.config(text=f"{point_name}\n{dbm} dBm ({percent}%)", 
-                               background=bg_color)
-                else:
-                    label.config(text=f"{point_name}\nSem sinal", background='#ffcccc')
+        if dbm != "N/A":
+            percent = measurement['percent']
+            color = dbm_to_color(dbm)
+            
+            # Cores e ícones baseados na qualidade do sinal
+            if color == "green":
+                style_name = 'Success.TButton'
+                status_icon = "✅"
+                bg_color = '#d4edda'  # Verde claro
+            elif color == "orange":
+                style_name = 'Warning.TButton' 
+                status_icon = "⚠️"
+                bg_color = '#fff3cd'  # Amarelo claro
             else:
-                label.config(text=f"{point_name}\nNão medido", background='lightgray')
+                style_name = 'Danger.TButton'
+                status_icon = "❌"
+                bg_color = '#f8d7da'  # Vermelho claro
+            
+            button.config(text=f"{status_icon} {point_name}\n{dbm} dBm\n({percent}%)", 
+                         style=style_name,
+                         state='disabled')  # Desabilitar botão após medição
+        else:
+            button.config(text=f"❓ {point_name}\nSem sinal", 
+                         style='TButton',
+                         state='normal')  # Manter habilitado para tentar novamente
 
-    def measure_point(self):
+    def measure_point_auto(self, point_name):
         if not self.ssid_selecionado:
-            messagebox.showerror("Erro", "Selecione uma rede Wi-Fi")
+            messagebox.showerror("Erro", "Selecione uma rede Wi-Fi primeiro")
             return
             
-        if not self.combo_local.get():
-            messagebox.showerror("Erro", "Selecione um local")
-            return
-        
-        if not self.combo_ponto.get():
-            messagebox.showerror("Erro", "Selecione um ponto")
+        if not self.current_local:
+            messagebox.showerror("Erro", "Selecione um local primeiro")
             return
 
-        local = self.combo_local.get()
-        ponto = self.combo_ponto.get()
+        local = self.current_local
+        ponto = point_name
 
-        # Fazer medição
-        self.btn_measure.config(state='disabled')
-        self.status_label.config(text="Medindo sinal Wi-Fi...")
+        # Desabilitar botão durante medição
+        button = self.point_labels[point_name]
+        button.config(state='disabled', text=f"📡 Medindo...\n{ponto}")
+        self.status_label.config(text=f"📡 Medindo {ponto} em {local}... Aguarde alguns segundos", 
+                               foreground=self.colors['warning'])
         self.root.update()
 
-        # Fazer scan em thread separada
+        # Fazer medição em thread separada
         def scan_thread():
             sig = self.scanner.scan_once(self.ssid_selecionado)
-            self.root.after(0, lambda: self.update_measurement_result(local, ponto, sig))
+            self.root.after(0, lambda: self.update_measurement_result_auto(local, ponto, sig, button))
 
         thread = threading.Thread(target=scan_thread, daemon=True)
         thread.start()
@@ -268,21 +368,19 @@ class WifiMapApp:
             messagebox.showerror("Erro", "Selecione uma rede Wi-Fi")
             return
             
-        if not self.combo_local.get():
-            messagebox.showerror("Erro", "Selecione um local")
+        if not self.current_local:
+            messagebox.showerror("Erro", "Selecione um local primeiro")
             return
+
+        local = self.current_local
         
-        if not self.combo_ponto.get():
-            messagebox.showerror("Erro", "Selecione um ponto")
-            return
-
-        local = self.combo_local.get()
-        ponto = self.combo_ponto.get()
-
+        # Criar lista de pontos disponíveis (1-16)
+        available_points = [f"Ponto {i}" for i in range(1, 17)]
+        
         # Criar janela para inserir valor manual
         manual_window = tk.Toplevel(self.root)
         manual_window.title("Inserir Valor Manual")
-        manual_window.geometry("350x200")
+        manual_window.geometry("400x250")
         manual_window.transient(self.root)
         manual_window.grab_set()
 
@@ -294,7 +392,17 @@ class WifiMapApp:
 
         ttk.Label(frame, text=f"Rede: {self.ssid_selecionado}", font=('Arial', 10)).pack(pady=2)
         ttk.Label(frame, text=f"Local: {local}", font=('Arial', 12, 'bold')).pack(pady=2)
-        ttk.Label(frame, text=f"Ponto: {ponto}", font=('Arial', 12, 'bold')).pack(pady=2)
+        
+        # Seleção de ponto
+        point_frame = ttk.Frame(frame)
+        point_frame.pack(pady=(15, 5))
+        
+        ttk.Label(point_frame, text="Ponto:", font=('Arial', 10)).grid(row=0, column=0, padx=(0, 10))
+        point_var = tk.StringVar()
+        point_combo = ttk.Combobox(point_frame, textvariable=point_var, values=available_points, 
+                                  state='readonly', width=15)
+        point_combo.grid(row=0, column=1)
+        point_combo.current(0)  # Selecionar primeiro ponto por padrão
 
         ttk.Label(frame, text="Valor RSSI (dBm):", font=('Arial', 10)).pack(pady=(15, 5))
         
@@ -310,6 +418,11 @@ class WifiMapApp:
 
         def save_manual():
             try:
+                ponto = point_var.get()
+                if not ponto:
+                    messagebox.showerror("Erro", "Selecione um ponto")
+                    return
+                    
                 dbm_value = int(dbm_var.get())
                 if dbm_value < -100 or dbm_value > 0:
                     messagebox.showerror("Erro", "Valor deve estar entre -100 e 0 dBm")
@@ -326,14 +439,16 @@ class WifiMapApp:
                 }
                 self.measurements[local][ponto] = measurement
 
+                # Atualizar botão com resultado
+                if ponto in self.point_labels:
+                    self.update_point_button(self.point_labels[ponto], ponto, measurement)
+                
                 # Atualizar interface
-                self.current_local = local
-                self.update_point_grid()
                 self.update_tree()
 
-                # Verificar se completou os 5 pontos
+                # Verificar se completou os 16 pontos
                 points_measured = len(self.measurements[local])
-                self.status_label.config(text=f"Rede: {self.ssid_selecionado} - {local}: {points_measured}/5 pontos (Manual: {dbm_value} dBm)")
+                self.status_label.config(text=f"📍 {local}: {points_measured}/16 pontos medidos (Manual: {dbm_value} dBm)")
 
                 manual_window.destroy()
 
@@ -350,7 +465,7 @@ class WifiMapApp:
         entry_dbm.bind('<Return>', lambda e: save_manual())
         manual_window.bind('<Escape>', lambda e: cancel_manual())
 
-    def update_measurement_result(self, local, ponto, sig):
+    def update_measurement_result_auto(self, local, ponto, sig, button):
         timestamp = time.strftime("%H:%M:%S")
         
         if sig is None:
@@ -368,16 +483,38 @@ class WifiMapApp:
         }
         self.measurements[local][ponto] = measurement
 
+        # Atualizar botão com resultado
+        self.update_point_button(button, ponto, measurement)
+        
         # Atualizar interface
-        self.current_local = local
-        self.update_point_grid()
         self.update_tree()
 
-        # Verificar se completou os 5 pontos
+        # Verificar se completou os 16 pontos
         points_measured = len(self.measurements[local])
-        self.status_label.config(text=f"Rede: {self.ssid_selecionado} - {local}: {points_measured}/5 pontos medidos")
+        if points_measured == 16:
+            self.status_label.config(text=f"🎉 {local}: Todos os 16 pontos medidos! Pronto para gerar mapa de calor", 
+                                   foreground=self.colors['success'])
+        else:
+            self.status_label.config(text=f"📍 {local}: {points_measured}/16 pontos medidos - Continue clicando nos pontos restantes", 
+                                   foreground=self.colors['primary'])
 
-        self.btn_measure.config(state='normal')
+    def update_point_grid_buttons(self):
+        """Atualiza todos os botões do grid para o local atual"""
+        if not self.current_local:
+            return
+
+        local_data = self.measurements.get(self.current_local, {})
+        
+        for point_name, button in self.point_labels.items():
+            if point_name in local_data:
+                measurement = local_data[point_name]
+                self.update_point_button(button, point_name, measurement)
+            else:
+                # Reset para estado não medido
+                point_num = point_name.split()[-1]  # Extrair número do ponto
+                button.config(text=f"📍 {point_num}\nNão medido", 
+                             style='TButton',
+                             state='normal')
 
     def update_tree(self):
         # Limpar árvore
@@ -395,15 +532,16 @@ class WifiMapApp:
             else:
                 avg_str = "N/A"
 
-            self.tree.insert('', 'end', values=(local, f"{points_count}/5", avg_str))
+            self.tree.insert('', 'end', values=(local, f"{points_count}/16", avg_str))
 
     def clear_all(self):
-        if messagebox.askyesno("Confirmar", "Limpar todas as medições de todos os locais?"):
+        if messagebox.askyesno("🗑️ Limpar Tudo", "Tem certeza que deseja limpar TODAS as medições de todos os locais?\n\nEsta ação não pode ser desfeita."):
             self.measurements.clear()
-            self.update_point_grid()
+            self.update_point_grid_buttons()
             self.update_tree()
             if self.ssid_selecionado:
-                self.status_label.config(text=f"Rede: {self.ssid_selecionado} - Todas as medições foram removidas")
+                self.status_label.config(text=f"🗑️ Todas as medições foram removidas - Pronto para novas medições com {self.ssid_selecionado}", 
+                                       foreground=self.colors['warning'])
 
     def show_heatmap(self):
         self.heatmap_generator.generate_heatmap(self.measurements, self.ssid_selecionado, self.load_example_data)
@@ -416,32 +554,30 @@ class WifiMapApp:
         if messagebox.askyesno("Carregar Dados", "Isso irá substituir todas as medições atuais. Continuar?"):
             self.measurements.clear()
             
-            # Dados de exemplo
+            # Dados de exemplo para 4x4 grid (16 pontos)
             example_data = {
                 "Sala": {
-                    "Ponto 1 (Centro)": {'dbm': -45, 'percent': 90, 'timestamp': '10:00:00'},
-                    "Ponto 2 (Superior Direito)": {'dbm': -48, 'percent': 86, 'timestamp': '10:01:00'},
-                    "Ponto 3 (Superior Esquerdo)": {'dbm': -42, 'percent': 96, 'timestamp': '10:02:00'},
-                    "Ponto 4 (Inferior Direito)": {'dbm': -50, 'percent': 80, 'timestamp': '10:03:00'},
-                    "Ponto 5 (Inferior Esquerdo)": {'dbm': -47, 'percent': 88, 'timestamp': '10:04:00'}
-                },
-                "Quarto": {
-                    "Ponto 1 (Centro)": {'dbm': -55, 'percent': 70, 'timestamp': '10:05:00'},
-                    "Ponto 2 (Superior Direito)": {'dbm': -58, 'percent': 64, 'timestamp': '10:06:00'},
-                    "Ponto 3 (Superior Esquerdo)": {'dbm': -52, 'percent': 76, 'timestamp': '10:07:00'},
-                    "Ponto 4 (Inferior Direito)": {'dbm': -60, 'percent': 60, 'timestamp': '10:08:00'},
-                    "Ponto 5 (Inferior Esquerdo)": {'dbm': -56, 'percent': 68, 'timestamp': '10:09:00'}
-                },
-                "Cozinha": {
-                    "Ponto 1 (Centro)": {'dbm': -65, 'percent': 40, 'timestamp': '10:10:00'},
-                    "Ponto 2 (Superior Direito)": {'dbm': -68, 'percent': 34, 'timestamp': '10:11:00'},
-                    "Ponto 3 (Superior Esquerdo)": {'dbm': -62, 'percent': 46, 'timestamp': '10:12:00'},
-                    "Ponto 4 (Inferior Direito)": {'dbm': -70, 'percent': 30, 'timestamp': '10:13:00'},
-                    "Ponto 5 (Inferior Esquerdo)": {'dbm': -67, 'percent': 36, 'timestamp': '10:14:00'}
+                    "Ponto 1": {'dbm': -45, 'percent': 90, 'timestamp': '10:00:00'},
+                    "Ponto 2": {'dbm': -48, 'percent': 86, 'timestamp': '10:01:00'},
+                    "Ponto 3": {'dbm': -42, 'percent': 96, 'timestamp': '10:02:00'},
+                    "Ponto 4": {'dbm': -50, 'percent': 80, 'timestamp': '10:03:00'},
+                    "Ponto 5": {'dbm': -47, 'percent': 88, 'timestamp': '10:04:00'},
+                    "Ponto 6": {'dbm': -46, 'percent': 89, 'timestamp': '10:05:00'},
+                    "Ponto 7": {'dbm': -49, 'percent': 84, 'timestamp': '10:06:00'},
+                    "Ponto 8": {'dbm': -44, 'percent': 92, 'timestamp': '10:07:00'},
+                    "Ponto 9": {'dbm': -51, 'percent': 78, 'timestamp': '10:08:00'},
+                    "Ponto 10": {'dbm': -48, 'percent': 86, 'timestamp': '10:09:00'},
+                    "Ponto 11": {'dbm': -45, 'percent': 90, 'timestamp': '10:10:00'},
+                    "Ponto 12": {'dbm': -47, 'percent': 88, 'timestamp': '10:11:00'},
+                    "Ponto 13": {'dbm': -49, 'percent': 84, 'timestamp': '10:12:00'},
+                    "Ponto 14": {'dbm': -46, 'percent': 89, 'timestamp': '10:13:00'},
+                    "Ponto 15": {'dbm': -48, 'percent': 86, 'timestamp': '10:14:00'},
+                    "Ponto 16": {'dbm': -50, 'percent': 80, 'timestamp': '10:15:00'}
                 }
             }
             
             self.measurements.update(example_data)
-            self.update_point_grid()
+            self.update_point_grid_buttons()
             self.update_tree()
-            self.status_label.config(text=f"Rede: {self.ssid_selecionado} - Dados de exemplo carregados")
+            self.status_label.config(text=f"📊 Dados de exemplo carregados com sucesso para {self.ssid_selecionado} - Pronto para gerar mapa!", 
+                                   foreground=self.colors['success'])
