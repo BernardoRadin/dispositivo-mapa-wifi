@@ -31,7 +31,7 @@ class WifiScanner:
             
         try:
             self.iface.scan()
-            time.sleep(2.0)  # Aguarda o scan terminar
+            time.sleep(2.0)
             redes = self.iface.scan_results()
             
             lista_ssids = []

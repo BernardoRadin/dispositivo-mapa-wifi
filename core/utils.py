@@ -23,22 +23,19 @@ def dbm_to_color(dbm):
     
     try:
         dbm_val = float(dbm)
-        
-        # Arredondar para o nível mais próximo (múltiplo de 10)
         rounded_dbm = round(dbm_val / 10) * 10
         
-        # Mapeamento exato baseado no valor arredondado
         if rounded_dbm >= -30:
-            return "#00FFFF"  # -30: Verde azulado/Ciano
+            return "#00FFFF"
         elif rounded_dbm >= -40:
-            return "#90EE90"  # -40: Verde claro
+            return "#90EE90"
         elif rounded_dbm >= -50:
-            return "#ADFF2F"  # -50: Amarelo esverdeado
+            return "#ADFF2F"
         elif rounded_dbm >= -60:
-            return "#FFA500"  # -60: Laranja
+            return "#FFA500"
         elif rounded_dbm >= -70:
-            return "#FF4500"  # -70: Laranja avermelhado
-        else:  # -80 ou pior
-            return "#FF0000"  # -80: Vermelho
+            return "#FF4500"
+        else:
+            return "#FF0000"
     except:
         return "gray"
