@@ -7,7 +7,7 @@ from PIL import Image, ImageTk
 import os
 
 from core.wifi_scanner import WifiScanner
-from core.utils import signal_dbm_to_percent, dbm_to_color
+from core.utils import signal_dbm_to_percent, dbm_to_color, dbm_to_status, interpolate_color
 from gui.heatmap import HeatmapGenerator
 
 class WifiMapApp:  
@@ -358,25 +358,81 @@ class WifiMapApp:
     def update_point_visual(self, point_name, measurement):
         if point_name not in self.canvas_points:
             return
-            
+
         dbm = measurement['dbm']
         outline_id, circle_id, text_id = self.canvas_points[point_name]
-        
+
         if dbm != "N/A":
-            color = dbm_to_color(dbm)
-            
-            if color == "green":
-                fill_color = '#28a745'
-            elif color == "orange":
-                fill_color = '#ffc107'
-            else:
-                fill_color = '#dc3545'
-            
-            self.canvas.itemconfig(circle_id, fill=fill_color)
-            
+            base_color = dbm_to_color(dbm)
+
+            final_color = self._calculate_gradient_color(point_name, base_color)
+
+            self.canvas.itemconfig(circle_id, fill=final_color)
+
             coords = self.image_points[point_name]
             self.canvas.coords(text_id, coords[0], coords[1]-15)
             self.canvas.itemconfig(text_id, text=f"{dbm}")
+
+    def _calculate_gradient_color(self, point_name, base_color):
+        if point_name not in self.image_points:
+            return base_color
+
+        current_coords = self.image_points[point_name]
+        current_dbm = None
+
+        for local_name, local_data in self.measurements.items():
+            for p_name, measurement in local_data.items():
+                if p_name == point_name:
+                    current_dbm = measurement.get('dbm')
+                    break
+            if current_dbm:
+                break
+
+        if current_dbm == "N/A" or current_dbm is None:
+            return base_color
+
+        try:
+            current_dbm_val = float(current_dbm)
+        except:
+            return base_color
+
+        nearby_points = []
+        max_distance = 100
+
+        for other_point, coords in self.image_points.items():
+            if other_point == point_name:
+                continue
+
+            distance = ((coords[0] - current_coords[0]) ** 2 + (coords[1] - current_coords[1]) ** 2) ** 0.5
+
+            if distance <= max_distance:
+                other_dbm = None
+                for local_name, local_data in self.measurements.items():
+                    if other_point in local_data:
+                        other_dbm = local_data[other_point].get('dbm')
+                        break
+
+                if other_dbm and other_dbm != "N/A":
+                    try:
+                        other_dbm_val = float(other_dbm)
+                        weight = 1 / (1 + distance / 50)
+                        nearby_points.append((other_dbm_val, weight))
+                    except:
+                        pass
+
+        if not nearby_points:
+            return base_color
+
+        total_weight = sum(weight for _, weight in nearby_points)
+        if total_weight == 0:
+            return base_color
+
+        weighted_avg = sum(dbm_val * weight for dbm_val, weight in nearby_points) / total_weight
+
+        blend_factor = 0.3  
+        interpolated_dbm = current_dbm_val * (1 - blend_factor) + weighted_avg * blend_factor
+
+        return dbm_to_color(interpolated_dbm)
 
     def update_points_tree(self):
         for item in self.tree.get_children():
@@ -387,13 +443,7 @@ class WifiMapApp:
             dbm = measurement.get('dbm', 'N/A')
             
             if dbm != 'N/A':
-                color = dbm_to_color(dbm)
-                if color == "green":
-                    status = "Excelente"
-                elif color == "orange":
-                    status = "Bom"
-                else:
-                    status = "Ruim"
+                status = dbm_to_status(dbm)
             else:
                 status = "Sem sinal"
 
@@ -565,25 +615,38 @@ class WifiMapApp:
 
     def update_point_button(self, button, point_name, measurement):
         dbm = measurement['dbm']
-        
+
         if dbm != "N/A":
             percent = measurement['percent']
-            color = dbm_to_color(dbm)
-            
-            if color == "green":
+            status = dbm_to_status(dbm)
+
+            # Mapeia status para estilo e ícone
+            if status == "Excelente":
                 style_name = 'Success.TButton'
-                status_icon = "✅"
-                bg_color = '#d4edda'
-            elif color == "orange":
-                style_name = 'Warning.TButton' 
-                status_icon = "⚠️"
-                bg_color = '#fff3cd'
-            else:
+                status_icon = "🔵"
+                bg_color = '#e3f2fd'  # Azul claro
+            elif status == "Muito Bom":
+                style_name = 'Success.TButton'
+                status_icon = "🟢"
+                bg_color = '#e8f5e8'  # Verde claro
+            elif status == "Bom":
+                style_name = 'Warning.TButton'
+                status_icon = "🟡"
+                bg_color = '#fff3cd'  # Amarelo claro
+            elif status == "Regular":
+                style_name = 'Warning.TButton'
+                status_icon = "🟠"
+                bg_color = '#fff3cd'  # Laranja claro
+            elif status == "Ruim":
+                style_name = 'Danger.TButton'
+                status_icon = "🔴"
+                bg_color = '#f8d7da'  # Vermelho claro
+            else:  # Muito Ruim
                 style_name = 'Danger.TButton'
                 status_icon = "❌"
                 bg_color = '#f8d7da'
-            
-            button.config(text=f"{status_icon} {point_name}\n{dbm} dBm\n({percent}%)", 
+
+            button.config(text=f"{status_icon} {point_name}\n{dbm} dBm\n({percent}%)",
                          style=style_name,
                          state='disabled')
         else:
