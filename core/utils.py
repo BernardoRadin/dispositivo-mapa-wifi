@@ -19,17 +19,26 @@ def signal_to_color(pct):
 
 def dbm_to_color(dbm):
     if dbm == "N/A" or dbm is None:
-        return "red"
+        return "gray"
     
     try:
         dbm_val = float(dbm)
-        if dbm_val >= -30:  # -30 ou melhor = Verde (excelente)
-            return "green"
-        elif dbm_val >= -49:  # -30 a -49 = Amarelo (bom)  
-            return "orange"
-        elif dbm_val >= -60:  # -50 a -60 = Vermelho (ruim)
-            return "red"
-        else:  # Pior que -60 = Vermelho escuro (muito ruim)
-            return "red"
+        
+        # Arredondar para o nível mais próximo (múltiplo de 10)
+        rounded_dbm = round(dbm_val / 10) * 10
+        
+        # Mapeamento exato baseado no valor arredondado
+        if rounded_dbm >= -30:
+            return "#00FFFF"  # -30: Verde azulado/Ciano
+        elif rounded_dbm >= -40:
+            return "#90EE90"  # -40: Verde claro
+        elif rounded_dbm >= -50:
+            return "#ADFF2F"  # -50: Amarelo esverdeado
+        elif rounded_dbm >= -60:
+            return "#FFA500"  # -60: Laranja
+        elif rounded_dbm >= -70:
+            return "#FF4500"  # -70: Laranja avermelhado
+        else:  # -80 ou pior
+            return "#FF0000"  # -80: Vermelho
     except:
-        return "red"
+        return "gray"
