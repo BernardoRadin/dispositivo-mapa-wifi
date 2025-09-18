@@ -98,13 +98,25 @@ class HeatmapGenerator:
         y_coords = []
         dbm_values = []
         point_labels = []
+
+        all_coords = []
         for point_name, measurement in measurements.items():
             if measurement.get('dbm', 'N/A') != 'N/A':
                 coords = measurement.get('coordinates', (0, 0))
-                x_coords.append(coords[0])
-                y_coords.append(coords[1])
-                dbm_values.append(float(measurement['dbm']))
-                point_labels.append(point_name)
+                all_coords.append(coords)
+
+        if all_coords:
+            max_y = max(coord[1] for coord in all_coords)
+
+
+            for point_name, measurement in measurements.items():
+                if measurement.get('dbm', 'N/A') != 'N/A':
+                    coords = measurement.get('coordinates', (0, 0))
+                    x_coords.append(coords[0])
+                    y_coords.append(max_y - coords[1])
+                    dbm_values.append(float(measurement['dbm']))
+                    point_labels.append(point_name)
+
         return x_coords, y_coords, dbm_values, point_labels
 
     def _create_plot_with_image(self, x_coords, y_coords, dbm_values, point_labels, ssid, image_path):

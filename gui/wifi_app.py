@@ -620,27 +620,26 @@ class WifiMapApp:
             percent = measurement['percent']
             status = dbm_to_status(dbm)
 
-            # Mapeia status para estilo e ícone
             if status == "Excelente":
                 style_name = 'Success.TButton'
                 status_icon = "🔵"
-                bg_color = '#e3f2fd'  # Azul claro
+                bg_color = '#e3f2fd'
             elif status == "Muito Bom":
                 style_name = 'Success.TButton'
                 status_icon = "🟢"
-                bg_color = '#e8f5e8'  # Verde claro
+                bg_color = '#e8f5e8' 
             elif status == "Bom":
                 style_name = 'Warning.TButton'
                 status_icon = "🟡"
-                bg_color = '#fff3cd'  # Amarelo claro
+                bg_color = '#fff3cd'
             elif status == "Regular":
                 style_name = 'Warning.TButton'
                 status_icon = "🟠"
-                bg_color = '#fff3cd'  # Laranja claro
+                bg_color = '#fff3cd'
             elif status == "Ruim":
                 style_name = 'Danger.TButton'
                 status_icon = "🔴"
-                bg_color = '#f8d7da'  # Vermelho claro
+                bg_color = '#f8d7da'
             else:  # Muito Ruim
                 style_name = 'Danger.TButton'
                 status_icon = "❌"

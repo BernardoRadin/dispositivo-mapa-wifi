@@ -1,0 +1,283 @@
+FUNCIONAMENTO DA APLICAÇÃO WIFI SCANNER - MAPA DE CALOR
+======================================================
+
+DESCRIÇÃO GERAL
+===============
+Esta aplicação é uma ferramenta profissional para análise de cobertura WiFi através de mapas de calor visuais.
+Ela permite medir a intensidade do sinal WiFi em diferentes pontos de um ambiente e gerar visualizações
+gráficas que mostram a distribuição da cobertura, facilitando a identificação de zonas mortas e otimização
+da posição de roteadores.
+
+O QUE A APLICAÇÃO FAZ
+=====================
+1. **Escaneamento de Redes WiFi**: Detecta automaticamente todas as redes WiFi disponíveis no ambiente
+2. **Medição de Intensidade**: Realiza medições pontuais da força do sinal (em dBm) em locais específicos
+3. **Mapeamento Visual**: Permite carregar plantas baixas de ambientes e marcar pontos de medição
+4. **Geração de Mapas de Calor**: Cria visualizações coloridas mostrando a distribuição do sinal
+5. **Análise de Qualidade**: Classifica o sinal em categorias (Excelente, Bom, Regular, Ruim, etc.)
+6. **Salvamento de Dados**: Exporta mapas em PNG e dados em JSON para análise posterior
+
+ARQUITETURA DA APLICAÇÃO
+========================
+
+A aplicação segue uma arquitetura modular organizada em 3 camadas principais:
+
+1. **CORE (Núcleo)**: Lógica de negócio e utilitários
+   - wifi_scanner.py: Interface com hardware WiFi
+   - utils.py: Funções auxiliares e cálculos
+
+2. **GUI (Interface)**: Interface gráfica do usuário
+   - wifi_app.py: Aplicação principal e controles
+   - heatmap.py: Geração de mapas de calor
+
+3. **MAIN**: Ponto de entrada
+   - main.py: Inicialização da aplicação
+
+COMO FUNCIONA O ESCANEAMENTO WIFI
+=================================
+
+1. **Inicialização do Scanner**:
+   - A classe WifiScanner utiliza a biblioteca PyWiFi para acessar interfaces de rede
+   - Identifica automaticamente a interface WiFi disponível no sistema
+   - Mantém uma referência para futuras operações de escaneamento
+
+2. **Detecção de Redes**:
+   - Método scan_networks(): Executa varredura completa das redes disponíveis
+   - Coleta informações como SSID (nome da rede), BSSID, frequência, etc.
+   - Retorna lista de redes encontradas para seleção do usuário
+
+3. **Medição de Intensidade**:
+   - Método scan_once(target_ssid): Foca em uma rede específica
+   - Executa escaneamento rápido (1 segundo) para obter dados atualizados
+   - Extrai o valor RSSI (Received Signal Strength Indicator) em dBm
+   - Retorna o melhor sinal encontrado (caso haja múltiplos access points)
+
+4. **Processamento de Dados**:
+   - Converte valores brutos para formato utilizável
+   - Trata casos de erro (sinal não detectado, interface indisponível)
+   - Aplica filtros para eliminar ruídos e valores inconsistentes
+
+COMO FUNCIONA A DEFINIÇÃO DE PONTOS
+===================================
+
+1. **Carregamento da Planta Baixa**:
+   - Usuário seleciona imagem (PNG, JPG, etc.) através de diálogo de arquivo
+   - PIL (Pillow) carrega e processa a imagem
+   - Redimensionamento automático para caber na interface (mantendo proporção)
+   - Exibição no canvas Tkinter com fundo branco
+
+2. **Mapeamento de Coordenadas**:
+   - Sistema de coordenadas cartesianas (x, y) em pixels
+   - Origem (0,0) no canto superior esquerdo da imagem
+   - Conversão automática entre coordenadas de tela e coordenadas de imagem
+   - Armazenamento em dicionários: image_points e canvas_points
+
+3. **Marcação Interativa**:
+   - Clique do mouse no canvas dispara evento on_canvas_click()
+   - Validação: clique deve estar dentro dos limites da imagem carregada
+   - Geração automática de nomes de pontos (Ponto 1, Ponto 2, etc.)
+   - Desenho visual: círculos concêntricos (contorno branco + preenchimento colorido)
+
+4. **Associação de Dados**:
+   - Cada ponto armazena: coordenadas (x,y), valor dBm, timestamp, percentual
+   - Estrutura de dados: defaultdict com chaves por local e ponto
+   - Atualização em tempo real da interface (árvore de pontos, botões)
+
+COMO FUNCIONA A GERAÇÃO DO MAPA DE CALOR
+========================================
+
+1. **Preparação dos Dados**:
+   - Coleta todos os pontos medidos com coordenadas válidas
+   - Validação: mínimo de 3 pontos para gerar mapa significativo
+   - Organização em arrays numpy para processamento vetorial
+
+2. **Sistema de Coordenadas**:
+   - Conversão de coordenadas pixel para sistema métrico relativo
+   - **Correção de orientação**: Pontos invertidos para alinhamento com imagem (origin='upper')
+   - Inversão automática: y_matplotlib = altura_imagem - y_tkinter
+   - Centralização do grid em torno de (0,0) para melhor visualização
+   - Espaçamento uniforme entre pontos (1 metro por unidade)
+
+3. **Interpolação de Dados**:
+   - Técnica: Interpolação cúbica (scipy.interpolate.griddata)
+   - Criação de grid regular sobre a área medida
+   - Preenchimento de valores entre pontos conhecidos
+   - Suavização para eliminar artefatos
+
+4. **Mapeamento de Cores**:
+   - Classificação baseada em intensidade dBm:
+     * -30 a -40 dBm: Excelente (#00FFFF - Ciano)
+     * -40 a -50 dBm: Muito Bom (#90EE90 - Verde claro)
+     * -50 a -60 dBm: Bom (#ADFF2F - Amarelo esverdeado)
+     * -60 a -70 dBm: Regular (#FFA500 - Laranja)
+     * -70 a -80 dBm: Ruim (#FF4500 - Laranja avermelhado)
+     * <-80 dBm: Muito Ruim (#FF0000 - Vermelho)
+
+5. **Sistema de Degrade**:
+   - Análise de proximidade: pontos dentro de 100 pixels de distância
+   - Cálculo de média ponderada baseada na distância
+   - Interpolação: 70% valor original + 30% influência vizinhos
+   - Transições suaves entre regiões de diferentes intensidades
+
+6. **Renderização Visual**:
+   - Matplotlib como engine de plotagem
+   - Sobreposição do mapa de calor na planta baixa original
+   - Colorbar lateral mostrando escala completa
+   - Títulos, legendas e informações estatísticas
+
+7. **Integração com Tkinter**:
+   - FigureCanvasTkAgg para embedding do matplotlib no Tkinter
+   - Janela dedicada para visualização do mapa
+   - Controles: salvar mapa, salvar dados, carregar exemplo
+
+BIBLIOTECAS UTILIZADAS E SUAS FUNÇÕES
+=====================================
+
+PYTHON CORE
+-----------
+- **threading**: Execução paralela de tarefas
+  * Permite medições WiFi sem bloquear a interface
+  * Thread separada para escaneamento (scan_thread)
+  * Comunicação thread-safe entre medição e atualização da UI
+
+- **time**: Controle temporal e timestamps
+  * Geração de timestamps para medições
+  * Controle de tempo de escaneamento (1 segundo)
+  * Formatação de datas para salvamento
+
+- **os**: Interação com sistema operacional
+  * Manipulação de caminhos de arquivo
+  * Verificação de existência de arquivos
+  * Extração de nomes de arquivo de caminhos completos
+
+- **collections.defaultdict**: Estruturas de dados avançadas
+  * Armazenamento organizado de medições por local e ponto
+  * Evita erros de chave inexistente
+  * Estrutura hierárquica: local -> ponto -> dados
+
+TKINTER E INTERFACE GRÁFICA
+---------------------------
+- **tkinter**: Framework base da interface gráfica
+  * Janela principal e controles básicos
+  * Canvas para exibição de imagens e desenhos
+  * Sistema de eventos (bind) para interatividade
+
+- **tkinter.ttk**: Widgets temáticos modernos
+  * Treeview para listagem de pontos
+  * Combobox para seleção de redes
+  * Progress bars e estilos personalizados
+  * Botões com temas consistentes
+
+- **tkinter.filedialog**: Diálogos de arquivo
+  * Seleção de imagens de planta baixa
+  * Salvamento de mapas PNG e dados JSON
+  * Filtros de extensão de arquivo
+
+PIL/PILLOW
+----------
+- **PIL.Image**: Processamento de imagens
+  * Carregamento de plantas baixas (PNG, JPG, etc.)
+  * Redimensionamento mantendo proporção
+  * Conversão para formato Tkinter (PhotoImage)
+
+- **PIL.ImageTk**: Integração PIL-Tkinter
+  * Conversão de imagens PIL para objetos Tkinter
+  * Exibição de imagens no canvas
+  * Gerenciamento de memória de imagens
+
+PYWIFI
+------
+- **pywifi.PyWiFi**: Interface de baixo nível com WiFi
+  * Acesso direto aos adaptadores de rede
+  * Controle de operações de escaneamento
+  * Extração de metadados das redes (SSID, BSSID, sinal)
+
+- **pywifi.Profile**: Gerenciamento de perfis de rede
+  * Criação e configuração de conexões
+  * Autenticação em redes (WPA2, etc.)
+  * Controle de estado de conexão
+
+MATPLOTLIB
+----------
+- **matplotlib.pyplot**: Plotagem de gráficos
+  * Criação de figuras e eixos para mapas de calor
+  * Configuração de títulos, labels e legendas
+  * Controle de layout e aparência
+
+- **matplotlib.colors**: Sistema de cores avançado
+  * Definição de colormaps customizados
+  * Normalização de valores para mapeamento de cores
+  * BoundaryNorm para classificação discreta
+
+- **matplotlib.backends.backend_tkagg**: Integração Matplotlib-Tkinter
+  * Embedding de gráficos matplotlib em janelas Tkinter
+  * FigureCanvasTkAgg para renderização
+  * Sincronização de eventos entre bibliotecas
+
+NUMPY
+-----
+- **numpy**: Computação numérica vetorial
+  * Arrays eficientes para coordenadas e valores
+  * Operações matemáticas otimizadas
+  * Interface com matplotlib e scipy
+
+SCIPY (INDIRETA ATRAVÉS DE MATPLOTLIB)
+---------------------------------------
+- **scipy.interpolate**: Interpolação avançada
+  * griddata para interpolação 2D
+  * Métodos cúbicos para suavização
+  * Preenchimento de valores entre pontos conhecidos
+
+JSON
+----
+- **json**: Serialização de dados
+  * Salvamento de medições em formato estruturado
+  * Carregamento de dados salvos anteriormente
+  * Formatação legível com indentação
+
+WORKFLOW COMPLETO DA APLICAÇÃO
+==============================
+
+1. **INICIALIZAÇÃO**
+   - Carregamento de módulos e bibliotecas
+   - Configuração do matplotlib para Tkinter
+   - Criação da janela principal
+
+2. **CONFIGURAÇÃO**
+   - Escaneamento automático de redes WiFi
+   - Seleção da rede alvo pelo usuário
+   - Carregamento de planta baixa (opcional)
+
+3. **MEDIÇÃO**
+   - Definição interativa de pontos de medição
+   - Escaneamento WiFi em cada ponto
+   - Armazenamento de dados com timestamp
+
+4. **ANÁLISE**
+   - Validação de dados (mínimo 3 pontos)
+   - Classificação de qualidade do sinal
+   - Aplicação de sistema de degrade
+
+5. **VISUALIZAÇÃO**
+   - Geração do mapa de calor interpolado
+   - Sobreposição na planta baixa
+   - Exibição de estatísticas e colorbar
+
+6. **PERSISTÊNCIA**
+   - Salvamento automático em PNG e JSON
+   - Estrutura organizada de arquivos
+   - Metadados completos (timestamp, configuração)
+
+CARACTERÍSTICAS TÉCNICAS AVANÇADAS
+==================================
+
+- **Threading Seguro**: Medições não bloqueiam a interface
+- **Tratamento de Erros**: Recuperação graciosa de falhas
+- **Correção de Coordenadas**: Pontos Y invertidos para alinhamento com imagem (origin='upper')
+- **Otimização de Performance**: Algoritmos eficientes para grandes datasets
+- **Escalabilidade**: Suporte para centenas de pontos de medição
+- **Extensibilidade**: Arquitetura modular para novas funcionalidades
+- **Portabilidade**: Compatível com Windows, macOS e Linux
+
+Esta aplicação combina técnicas avançadas de processamento de sinal, visualização de dados
+e interface gráfica para fornecer uma ferramenta completa de análise de cobertura WiFi.
